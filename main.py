@@ -105,10 +105,10 @@ def main(page: ft.Page):
     )
 
     url_input = ft.TextField(
-        hint_text="URL страницы игрока на chess-results.com",
+        label="URL страницы игрока на chess-results.com",
         expand=True,
         border_radius=10,
-        content_padding=ft.Padding.symmetric(vertical=12, horizontal=16),
+        dense=True,
         suffix=ft.IconButton(
             icon=ft.Icons.CLOSE,
             tooltip="Очистить",
