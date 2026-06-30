@@ -55,7 +55,8 @@ def parse_player_page(url):
     half_char = '\u00bd'
     for row in game_table.find_all('tr'):
         cells = row.find_all('td')
-        if len(cells) <= max(col_index['rating'], col_index['result']):
+        min_required = max(col_index.values())
+        if len(cells) <= min_required:
             continue
 
         rating_text = cells[col_index['rating']].get_text(strip=True)
@@ -63,7 +64,8 @@ def parse_player_page(url):
         name_text = cells[col_index.get('name', 0)].get_text(strip=True) if 'name' in col_index else ""
 
         # Check for bye
-        if (not rating_text.isdigit() or len(rating_text) < 3) and 'bye' in name_text.lower():
+        bye_keywords = ['bye', 'freilos', 'входной']
+        if (not rating_text.isdigit() or len(rating_text) < 3) and any(kw in name_text.lower() for kw in bye_keywords):
             games.append({
                 "opponent_rating": None,
                 "result": 1.0,
@@ -77,21 +79,26 @@ def parse_player_page(url):
 
         opponent_rating = int(rating_text)
 
-        result_val = None
-        if result_text in ('1', '1.0'):
+        result_clean = result_text.strip().replace(' ', '')
+        is_forfeit = '0K' in result_clean or '1K' in result_clean
+
+        if result_clean in ('1', '1.0', '+') or '1K' in result_clean:
             result_val = 1.0
-        elif result_text in ('0', '0.0'):
+        elif result_clean in ('0', '0.0', '-') or '0K' in result_clean:
             result_val = 0.0
-        elif result_text in (half_char, '1/2', '0.5'):
+        elif result_clean in (half_char, '1/2', '0.5'):
             result_val = 0.5
         else:
             continue
 
-        games.append({
+        game_entry = {
             "opponent_rating": opponent_rating,
             "result": result_val,
             "opponent_name": name_text,
-        })
+        }
+        if is_forfeit:
+            game_entry["is_forfeit"] = True
+        games.append(game_entry)
 
     return player_rating, games
 
@@ -105,7 +112,7 @@ def calculate_new_rating(old_rating, games, k=40, limit_400=True):
     for game in games:
         actual_display_score += game['result']
 
-        if game.get('is_bye'):
+        if game.get('is_bye') or game.get('is_forfeit'):
             game_expected_scores.append(None)
             continue
 

@@ -100,6 +100,43 @@ def main(page: ft.Page):
                 ),
             )
 
+        if game.get('is_forfeit'):
+            forfeit_label = "Техническая победа" if game['result'] == 1.0 else "Техническое поражение"
+            fcolor = ft.Colors.GREEN_400 if game['result'] == 1.0 else ft.Colors.RED_400
+            result_display = "1" if game['result'] == 1.0 else "0"
+            return ft.Container(
+                bgcolor=ft.Colors.SURFACE_CONTAINER,
+                border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
+                border_radius=16,
+                padding=ft.Padding(30, 40, 30, 40),
+                width=300,
+                height=360,
+                content=ft.Column(
+                    [
+                        ft.Text(f"Тур {round_num}", size=14, color=ft.Colors.GREY_500),
+                        ft.Container(height=18),
+                        ft.Text(
+                            game.get('opponent_name', ''),
+                            size=26, weight=ft.FontWeight.BOLD,
+                            text_align=ft.TextAlign.CENTER,
+                        ),
+                        ft.Container(height=12),
+                        ft.Text(
+                            f"Рейт: {game['opponent_rating']}  \u00b7  {forfeit_label}",
+                            size=15, color=ft.Colors.GREY_400,
+                            text_align=ft.TextAlign.CENTER,
+                        ),
+                        ft.Divider(height=1, color=ft.Colors.OUTLINE_VARIANT),
+                        ft.Container(height=18),
+                        ft.Text(result_display, size=56, color=fcolor,
+                                weight=ft.FontWeight.BOLD,
+                                text_align=ft.TextAlign.CENTER),
+                    ],
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    spacing=0,
+                ),
+            )
+
         if game['result'] == 1.0:
             result_text = "1"
             result_color = ft.Colors.GREEN_400
@@ -194,11 +231,6 @@ def main(page: ft.Page):
                 card_old_rating.value = str(old_rating)
                 card_new_rating.value = str(new_rating)
                 card_change.value = f"{change:+.0f}"
-                card_stats.value = (
-                    f"{len(games)} игр \u00b7 K={k} \u00b7 "
-                    f"Ожидал: {expected_score} \u00b7 Набрал: {actual_score}"
-                )
-
                 if change > 0:
                     card_trend_icon.icon = ft.Icons.TRENDING_UP
                     card_trend_icon.color = ft.Colors.GREEN_400
@@ -219,7 +251,7 @@ def main(page: ft.Page):
                 normal_games = total_games - bye_count
                 games_str = f"{normal_games} игр"
                 if bye_count:
-                    games_str += " (1 bye)"
+                    games_str += f" ({bye_count} bye)"
                 card_stats.value = (
                     f"{games_str} \u00b7 K={k} \u00b7 "
                     f"Ожидал: {expected_score} \u00b7 Набрал: {actual_score}"
@@ -315,7 +347,7 @@ def main(page: ft.Page):
         bgcolor=ft.Colors.SURFACE_CONTAINER,
         border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
         border_radius=16,
-        padding=ft.padding.all(25),
+        padding=ft.Padding(25, 25, 25, 25),
         content=ft.Column(
             [
                 ft.Row(
