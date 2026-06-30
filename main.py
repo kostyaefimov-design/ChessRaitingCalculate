@@ -1,6 +1,12 @@
 import flet as ft
 from backend import parse_player_page, calculate_new_rating
 
+K_OPTIONS = {
+    "40": "Новые игроки (< 30 партий, рейтинг < 2400) и юниоры (< 18 лет, < 2300)",
+    "20": "Игроки с рейтингом < 2400 (рапид, блиц)",
+    "10": "Игроки, достигавшие рейтинга 2400+",
+}
+
 
 def main(page: ft.Page):
     page.title = "Калькулятор рейтинга ФШР"
@@ -8,8 +14,17 @@ def main(page: ft.Page):
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
     page.theme_mode = ft.ThemeMode.DARK
     page.window_width = 600
-    page.window_height = 400
+    page.window_height = 520
     page.padding = 30
+
+    def clear_url(e):
+        url_input.value = ""
+        url_input.focus()
+        page.update()
+
+    def on_k_change(e):
+        k_description.value = K_OPTIONS[k_factor_dropdown.value]
+        page.update()
 
     def calculate_clicked(e):
         url = url_input.value
@@ -25,6 +40,7 @@ def main(page: ft.Page):
 
         try:
             old_rating, games = parse_player_page(url)
+            k = int(k_factor_dropdown.value)
 
             if old_rating is None:
                 new_rating_text.value = "Ошибка: не удалось получить данные"
@@ -32,7 +48,7 @@ def main(page: ft.Page):
                 old_rating_text.value = f"Старый рейтинг: {old_rating}"
                 new_rating_text.value = "Ошибка: Партии не найдены"
             else:
-                new_rating = calculate_new_rating(old_rating, games)
+                new_rating = calculate_new_rating(old_rating, games, k=k)
                 change = new_rating - old_rating
 
                 old_rating_text.value = f"Старый рейтинг: {old_rating} | Количество игр: {len(games)}"
@@ -56,6 +72,29 @@ def main(page: ft.Page):
         label="URL страницы игрока на chess-results.com",
         width=550,
         border_radius=10,
+        suffix=ft.IconButton(
+            icon=ft.Icons.CLOSE,
+            tooltip="Очистить",
+            on_click=clear_url,
+        ),
+    )
+
+    k_factor_dropdown = ft.Dropdown(
+        label="K-фактор (коэффициент развития)",
+        width=550,
+        value="40",
+        options=[
+            ft.dropdown.Option(key=k, text=f"K = {k}")
+            for k in K_OPTIONS
+        ],
+        on_change=on_k_change,
+    )
+
+    k_description = ft.Text(
+        K_OPTIONS["40"],
+        size=12,
+        italic=True,
+        color=ft.Colors.GREY_400,
     )
 
     calculate_button = ft.ElevatedButton(
@@ -88,11 +127,13 @@ def main(page: ft.Page):
                 ft.Text("Калькулятор рейтинга ФШР", size=28, weight=ft.FontWeight.BOLD),
                 ft.Text("Вставьте ссылку на страницу с результатами игрока", size=16),
                 url_input,
+                k_factor_dropdown,
+                k_description,
                 ft.Row([calculate_button, progress_ring], alignment=ft.MainAxisAlignment.CENTER),
                 ft.Divider(height=20),
                 results_container,
             ],
-            spacing=20,
+            spacing=15,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         )
     )
