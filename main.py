@@ -87,7 +87,7 @@ def main(page: ft.Page):
             ft.dropdown.Option(key=k, text=f"K = {k}")
             for k in K_OPTIONS
         ],
-        on_change=on_k_change,
+        on_select=on_k_change,
     )
 
     k_description = ft.Text(
