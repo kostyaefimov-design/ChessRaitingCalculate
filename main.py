@@ -70,7 +70,7 @@ def main(page: ft.Page):
 
     url_input = ft.TextField(
         label="URL страницы игрока на chess-results.com",
-        width=550,
+        expand=True,
         border_radius=10,
         suffix=ft.IconButton(
             icon=ft.Icons.CLOSE,
@@ -80,11 +80,10 @@ def main(page: ft.Page):
     )
 
     k_factor_dropdown = ft.Dropdown(
-        label="K-фактор (коэффициент развития)",
-        width=550,
+        width=110,
         value="40",
         options=[
-            ft.dropdown.Option(key=k, text=f"K = {k}")
+            ft.dropdown.Option(key=k, text=f"K={k}")
             for k in K_OPTIONS
         ],
         on_select=on_k_change,
@@ -126,8 +125,7 @@ def main(page: ft.Page):
             [
                 ft.Text("Калькулятор рейтинга ФШР", size=28, weight=ft.FontWeight.BOLD),
                 ft.Text("Вставьте ссылку на страницу с результатами игрока", size=16),
-                url_input,
-                k_factor_dropdown,
+                ft.Row([url_input, k_factor_dropdown], spacing=10, vertical_alignment=ft.CrossAxisAlignment.CENTER),
                 k_description,
                 ft.Row([calculate_button, progress_ring], alignment=ft.MainAxisAlignment.CENTER),
                 ft.Divider(height=20),
