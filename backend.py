@@ -88,15 +88,19 @@ def parse_player_page(url):
     return player_rating, games
 
 
-def calculate_new_rating(old_rating, games):
-    k = 40
+def calculate_new_rating(old_rating, games, k=40, limit_400=True):
     total_expected_score = 0
     actual_score = 0
 
     for game in games:
         opponent_rating = game['opponent_rating']
         actual_score += game['result']
-        expected_score = 1 / (1 + 10 ** ((opponent_rating - old_rating) / 400))
+
+        diff = opponent_rating - old_rating
+        if limit_400:
+            diff = max(min(diff, 400), -400)
+
+        expected_score = 1 / (1 + 10 ** (diff / 400))
         total_expected_score += expected_score
 
     rating_change = k * (actual_score - total_expected_score)
