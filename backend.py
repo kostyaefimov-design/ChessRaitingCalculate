@@ -46,6 +46,8 @@ def parse_player_page(url):
             col_index['rating'] = i
         elif text == 'Рез.':
             col_index['result'] = i
+        elif text == 'Имя':
+            col_index['name'] = i
 
     if 'rating' not in col_index or 'result' not in col_index:
         return player_rating, games
@@ -58,6 +60,17 @@ def parse_player_page(url):
 
         rating_text = cells[col_index['rating']].get_text(strip=True)
         result_text = cells[col_index['result']].get_text(strip=True)
+        name_text = cells[col_index.get('name', 0)].get_text(strip=True) if 'name' in col_index else ""
+
+        # Check for bye
+        if (not rating_text.isdigit() or len(rating_text) < 3) and 'bye' in name_text.lower():
+            games.append({
+                "opponent_rating": None,
+                "result": 1.0,
+                "opponent_name": "BYE",
+                "is_bye": True,
+            })
+            continue
 
         if not rating_text.isdigit() or len(rating_text) < 3:
             continue
@@ -74,26 +87,39 @@ def parse_player_page(url):
         else:
             continue
 
-        games.append({"opponent_rating": opponent_rating, "result": result_val})
+        games.append({
+            "opponent_rating": opponent_rating,
+            "result": result_val,
+            "opponent_name": name_text,
+        })
 
     return player_rating, games
 
 
 def calculate_new_rating(old_rating, games, k=40, limit_400=True):
     total_expected_score = 0
-    actual_score = 0
+    actual_rating_score = 0
+    actual_display_score = 0
+    game_expected_scores = []
 
     for game in games:
-        opponent_rating = game['opponent_rating']
-        actual_score += game['result']
+        actual_display_score += game['result']
 
+        if game.get('is_bye'):
+            game_expected_scores.append(None)
+            continue
+
+        actual_rating_score += game['result']
+
+        opponent_rating = game['opponent_rating']
         diff = opponent_rating - old_rating
         if limit_400:
             diff = max(min(diff, 400), -400)
 
         expected_score = 1 / (1 + 10 ** (diff / 400))
+        game_expected_scores.append(round(expected_score, 2))
         total_expected_score += expected_score
 
-    rating_change = k * (actual_score - total_expected_score)
+    rating_change = k * (actual_rating_score - total_expected_score)
     new_rating = old_rating + round(rating_change)
-    return new_rating, actual_score, round(total_expected_score, 2)
+    return new_rating, actual_display_score, round(total_expected_score, 2), game_expected_scores

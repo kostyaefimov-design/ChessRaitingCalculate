@@ -16,6 +16,12 @@ def main(page: ft.Page):
     page.padding = 30
     page.scroll = ft.ScrollMode.AUTO
 
+    # --- State ---
+    game_cards_list = []
+    current_card_index = 0
+    total_games = 0
+    _drag_start_x = 0
+
     def toggle_theme(e):
         if page.theme_mode == ft.ThemeMode.DARK:
             page.theme_mode = ft.ThemeMode.LIGHT
@@ -26,9 +32,11 @@ def main(page: ft.Page):
         page.update()
 
     def clear_url(e):
+        nonlocal game_cards_list, current_card_index, total_games
         url_input.value = ""
         url_input.focus()
         result_card.visible = False
+        games_section.visible = False
         error_text.visible = False
         page.update()
 
@@ -36,7 +44,126 @@ def main(page: ft.Page):
         k_description.value = K_OPTIONS[k_factor_dropdown.value]
         page.update()
 
+    def go_to_card(index):
+        nonlocal current_card_index
+        if 0 <= index < total_games:
+            current_card_index = index
+            cards_switcher.content = game_cards_list[current_card_index]
+            card_counter.value = f"{current_card_index + 1} / {total_games}"
+            prev_button.disabled = current_card_index == 0
+            next_button.disabled = current_card_index == total_games - 1
+            page.update()
+
+    def prev_card(e):
+        go_to_card(current_card_index - 1)
+
+    def next_card(e):
+        go_to_card(current_card_index + 1)
+
+    def build_single_game_card(game, expected, round_num):
+        if expected is not None:
+            rounded = round(expected * 2) / 2
+            if rounded == int(rounded):
+                exp_str = str(int(rounded))
+            else:
+                exp_str = "\u00bd"
+        else:
+            exp_str = "-"
+
+        is_bye = game.get('is_bye', False)
+
+        if is_bye:
+            return ft.Container(
+                bgcolor=ft.Colors.SURFACE_CONTAINER,
+                border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
+                border_radius=16,
+                padding=ft.Padding(30, 40, 30, 40),
+                width=300,
+                height=360,
+                content=ft.Column(
+                    [
+                        ft.Text(f"Тур {round_num}", size=14, color=ft.Colors.GREY_500),
+                        ft.Container(height=18),
+                        ft.Text("BYE", size=26, weight=ft.FontWeight.BOLD,
+                                text_align=ft.TextAlign.CENTER),
+                        ft.Container(height=12),
+                        ft.Text("Свободный тур", size=15, color=ft.Colors.GREY_400,
+                                text_align=ft.TextAlign.CENTER),
+                        ft.Divider(height=1, color=ft.Colors.OUTLINE_VARIANT),
+                        ft.Container(height=18),
+                        ft.Text("1", size=56, color=ft.Colors.GREEN_400,
+                                weight=ft.FontWeight.BOLD,
+                                text_align=ft.TextAlign.CENTER),
+                    ],
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    spacing=0,
+                ),
+            )
+
+        if game['result'] == 1.0:
+            result_text = "1"
+            result_color = ft.Colors.GREEN_400
+        elif game['result'] == 0.0:
+            result_text = "0"
+            result_color = ft.Colors.RED_400
+        else:
+            result_text = "\u00bd"
+            result_color = ft.Colors.GREY_300
+
+        return ft.Container(
+            bgcolor=ft.Colors.SURFACE_CONTAINER,
+            border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
+            border_radius=16,
+            padding=ft.Padding(30, 40, 30, 40),
+            width=300,
+            height=360,
+            content=ft.Column(
+                [
+                    ft.Text(f"Тур {round_num}", size=14, color=ft.Colors.GREY_500),
+                    ft.Container(height=18),
+                    ft.Text(
+                        game.get('opponent_name', ''),
+                        size=26,
+                        weight=ft.FontWeight.BOLD,
+                        text_align=ft.TextAlign.CENTER,
+                    ),
+                    ft.Container(height=12),
+                    ft.Text(
+                        f"Рейт: {game['opponent_rating']}  \u00b7  Ожид: {exp_str}",
+                        size=15,
+                        color=ft.Colors.GREY_400,
+                        text_align=ft.TextAlign.CENTER,
+                    ),
+                    ft.Divider(height=1, color=ft.Colors.OUTLINE_VARIANT),
+                    ft.Container(height=18),
+                    ft.Text(
+                        result_text,
+                        size=56,
+                        color=result_color,
+                        weight=ft.FontWeight.BOLD,
+                        text_align=ft.TextAlign.CENTER,
+                    ),
+                ],
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                spacing=0,
+            ),
+        )
+
+    def on_drag_start(e):
+        nonlocal _drag_start_x
+        _drag_start_x = e.local_position.x
+
+    def on_drag_end(e):
+        nonlocal current_card_index
+        dx = e.local_position.x - _drag_start_x
+        if dx > 50 and current_card_index > 0:
+            go_to_card(current_card_index - 1)
+        elif dx < -50 and current_card_index < total_games - 1:
+            go_to_card(current_card_index + 1)
+
     def calculate_clicked(e):
+        nonlocal game_cards_list, current_card_index, total_games
+
         url = url_input.value
         if not url:
             return
@@ -44,6 +171,7 @@ def main(page: ft.Page):
         progress_ring.visible = True
         calculate_button.disabled = True
         result_card.visible = False
+        games_section.visible = False
         error_text.visible = False
         page.update()
 
@@ -58,8 +186,8 @@ def main(page: ft.Page):
                 error_text.value = "Ошибка: Партии не найдены"
                 error_text.visible = True
             else:
-                new_rating, actual_score, expected_score = calculate_new_rating(
-                    old_rating, games, k=k
+                new_rating, actual_score, expected_score, game_expected = (
+                    calculate_new_rating(old_rating, games, k=k)
                 )
                 change = new_rating - old_rating
 
@@ -85,6 +213,29 @@ def main(page: ft.Page):
                     card_change.color = ft.Colors.GREY_400
 
                 result_card.visible = True
+
+                total_games = len(games)
+                bye_count = sum(1 for g in games if g.get('is_bye'))
+                normal_games = total_games - bye_count
+                games_str = f"{normal_games} игр"
+                if bye_count:
+                    games_str += " (1 bye)"
+                card_stats.value = (
+                    f"{games_str} \u00b7 K={k} \u00b7 "
+                    f"Ожидал: {expected_score} \u00b7 Набрал: {actual_score}"
+                )
+                current_card_index = 0
+                game_cards_list = [
+                    build_single_game_card(g, exp, i + 1)
+                    for i, (g, exp) in enumerate(zip(games, game_expected))
+                ]
+
+                cards_switcher.content = game_cards_list[0]
+                card_counter.value = f"1 / {total_games}"
+                prev_button.disabled = True
+                next_button.disabled = total_games <= 1
+                games_section.visible = True
+
         except Exception as ex:
             error_text.value = f"Системная ошибка: {ex}"
             error_text.visible = True
@@ -193,6 +344,53 @@ def main(page: ft.Page):
         ),
     )
 
+    # ------------------- Flash Card Section -------------------
+
+    prev_button = ft.IconButton(
+        icon=ft.Icons.ARROW_BACK,
+        icon_size=28,
+        disabled=True,
+        on_click=prev_card,
+    )
+
+    card_counter = ft.Text("", size=14, color=ft.Colors.GREY_400)
+
+    next_button = ft.IconButton(
+        icon=ft.Icons.ARROW_FORWARD,
+        icon_size=28,
+        disabled=True,
+        on_click=next_card,
+    )
+
+    cards_switcher = ft.AnimatedSwitcher(
+        content=ft.Container(),
+        transition=ft.AnimatedSwitcherTransition.FADE,
+        duration=300,
+    )
+
+    swipe_wrapper = ft.GestureDetector(
+        content=cards_switcher,
+        on_horizontal_drag_start=on_drag_start,
+        on_horizontal_drag_end=on_drag_end,
+    )
+
+    games_section = ft.Container(
+        visible=False,
+        content=ft.Column(
+            [
+                swipe_wrapper,
+                ft.Container(height=12),
+                ft.Row(
+                    [prev_button, card_counter, next_button],
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    spacing=15,
+                ),
+            ],
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=0,
+        ),
+    )
+
     # ------------------- Page Layout -------------------
 
     page.add(
@@ -221,6 +419,7 @@ def main(page: ft.Page):
                         ),
                         ft.Divider(height=20),
                         result_card,
+                        games_section,
                         error_text,
                     ],
                     spacing=15,
