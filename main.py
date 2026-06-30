@@ -3,7 +3,7 @@ from backend import parse_player_page, calculate_new_rating
 
 LANG = {
     "ru": {
-        "page_title": "Калькулятор рейтинга ФШР",
+        "page_title": "Калькулятор рейтинга ФИДЕ",
         "page_subtitle": "Вставьте ссылку на страницу с результатами игрока",
         "url_label": "URL страницы игрока на chess-results.com",
         "clear_tooltip": "Очистить",
@@ -32,7 +32,7 @@ LANG = {
         "k_10": "Игроки, достигавшие рейтинга 2400+",
     },
     "en": {
-        "page_title": "FRS Rating Calculator",
+        "page_title": "FIDE Rating Calculator",
         "page_subtitle": "Paste the URL of the player's results page",
         "url_label": "Player page URL on chess-results.com",
         "clear_tooltip": "Clear",
