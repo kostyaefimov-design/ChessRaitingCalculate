@@ -105,9 +105,10 @@ def main(page: ft.Page):
     )
 
     url_input = ft.TextField(
-        label="URL страницы игрока на chess-results.com",
+        hint_text="URL страницы игрока на chess-results.com",
         expand=True,
         border_radius=10,
+        content_padding=ft.Padding.symmetric(vertical=12, horizontal=16),
         suffix=ft.IconButton(
             icon=ft.Icons.CLOSE,
             tooltip="Очистить",
@@ -117,6 +118,7 @@ def main(page: ft.Page):
 
     k_factor_dropdown = ft.Dropdown(
         width=110,
+        height=48,
         value="40",
         options=[
             ft.dropdown.Option(key=k, text=f"K={k}") for k in K_OPTIONS
