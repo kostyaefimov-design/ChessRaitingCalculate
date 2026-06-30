@@ -1,10 +1,65 @@
 import flet as ft
 from backend import parse_player_page, calculate_new_rating
 
-K_OPTIONS = {
-    "40": "Новые игроки (< 30 партий, рейтинг < 2400) и юниоры (< 18 лет, < 2300)",
-    "20": "Игроки с рейтингом < 2400 (рапид, блиц)",
-    "10": "Игроки, достигавшие рейтинга 2400+",
+LANG = {
+    "ru": {
+        "page_title": "Калькулятор рейтинга ФШР",
+        "page_subtitle": "Вставьте ссылку на страницу с результатами игрока",
+        "url_label": "URL страницы игрока на chess-results.com",
+        "clear_tooltip": "Очистить",
+        "calc_button": "Рассчитать",
+        "lang_ru": "RU",
+        "lang_en": "EN",
+        "error_fetch": "Ошибка: не удалось получить данные",
+        "error_no_games": "Ошибка: Партии не найдены",
+        "error_system": "Системная ошибка",
+        "old_label": "Старый",
+        "new_label": "Новый",
+        "games": "игр",
+        "expected": "Ожидал",
+        "scored": "Набрал",
+        "theme_tooltip": "Сменить тему",
+        "lang_tooltip": "English",
+        "round": "Тур",
+        "rating_abbr": "Рейт",
+        "exp_abbr": "Ожид",
+        "bye_title": "BYE",
+        "bye_subtitle": "Свободный тур",
+        "forfeit_win": "Техническая победа",
+        "forfeit_loss": "Техническое поражение",
+        "k_40": "Новые игроки (< 30 партий, рейтинг < 2400) и юниоры (< 18 лет, < 2300)",
+        "k_20": "Игроки с рейтингом < 2400 (рапид, блиц)",
+        "k_10": "Игроки, достигавшие рейтинга 2400+",
+    },
+    "en": {
+        "page_title": "FRS Rating Calculator",
+        "page_subtitle": "Paste the URL of the player's results page",
+        "url_label": "Player page URL on chess-results.com",
+        "clear_tooltip": "Clear",
+        "calc_button": "Calculate",
+        "lang_ru": "RU",
+        "lang_en": "EN",
+        "error_fetch": "Error: could not fetch data",
+        "error_no_games": "Error: No games found",
+        "error_system": "System error",
+        "old_label": "Old",
+        "new_label": "New",
+        "games": "games",
+        "expected": "Expected",
+        "scored": "Scored",
+        "theme_tooltip": "Toggle theme",
+        "lang_tooltip": "Русский",
+        "round": "Round",
+        "rating_abbr": "Rtng",
+        "exp_abbr": "Exp",
+        "bye_title": "BYE",
+        "bye_subtitle": "Bye round",
+        "forfeit_win": "Forfeit win",
+        "forfeit_loss": "Forfeit loss",
+        "k_40": "New players (< 30 games, rating < 2400) and juniors (< 18 yr, < 2300)",
+        "k_20": "Players with rating < 2400 (rapid, blitz)",
+        "k_10": "Players who reached rating 2400+",
+    },
 }
 
 
@@ -17,10 +72,14 @@ def main(page: ft.Page):
     page.scroll = ft.ScrollMode.AUTO
 
     # --- State ---
+    current_lang = "ru"
     game_cards_list = []
     current_card_index = 0
     total_games = 0
     _drag_start_x = 0
+
+    def t(key):
+        return LANG[current_lang][key]
 
     def toggle_theme(e):
         if page.theme_mode == ft.ThemeMode.DARK:
@@ -30,6 +89,26 @@ def main(page: ft.Page):
             page.theme_mode = ft.ThemeMode.DARK
             theme_toggle.icon = ft.Icons.LIGHT_MODE
         page.update()
+
+    def toggle_lang(e):
+        nonlocal current_lang
+        current_lang = "en" if current_lang == "ru" else "ru"
+        update_lang()
+        page.update()
+
+    def update_lang():
+        page.title = t("page_title")
+        page_title_text.value = t("page_title")
+        page_subtitle_text.value = t("page_subtitle")
+        url_input.label = t("url_label")
+        url_input.suffix.tooltip = t("clear_tooltip")
+        lang_toggle.content.value = t("lang_en") if current_lang == "ru" else t("lang_ru")
+        lang_toggle.tooltip = t("lang_tooltip")
+        theme_toggle.tooltip = t("theme_tooltip")
+        k_description.value = t(f"k_{k_factor_dropdown.value}")
+        calc_button_text.value = t("calc_button")
+        card_old_label.value = t("old_label")
+        card_new_label.value = t("new_label")
 
     def clear_url(e):
         nonlocal game_cards_list, current_card_index, total_games
@@ -41,7 +120,7 @@ def main(page: ft.Page):
         page.update()
 
     def on_k_change(e):
-        k_description.value = K_OPTIONS[k_factor_dropdown.value]
+        k_description.value = t(f"k_{k_factor_dropdown.value}")
         page.update()
 
     def go_to_card(index):
@@ -61,6 +140,9 @@ def main(page: ft.Page):
         go_to_card(current_card_index + 1)
 
     def build_single_game_card(game, expected, round_num):
+        lang = current_lang
+        tr = lambda k: LANG[lang][k]
+
         if expected is not None:
             rounded = round(expected * 2) / 2
             if rounded == int(rounded):
@@ -82,12 +164,12 @@ def main(page: ft.Page):
                 height=360,
                 content=ft.Column(
                     [
-                        ft.Text(f"Тур {round_num}", size=14, color=ft.Colors.GREY_500),
+                        ft.Text(f"{tr('round')} {round_num}", size=14, color=ft.Colors.GREY_500),
                         ft.Container(height=18),
-                        ft.Text("BYE", size=26, weight=ft.FontWeight.BOLD,
+                        ft.Text(tr("bye_title"), size=26, weight=ft.FontWeight.BOLD,
                                 text_align=ft.TextAlign.CENTER),
                         ft.Container(height=12),
-                        ft.Text("Свободный тур", size=15, color=ft.Colors.GREY_400,
+                        ft.Text(tr("bye_subtitle"), size=15, color=ft.Colors.GREY_400,
                                 text_align=ft.TextAlign.CENTER),
                         ft.Divider(height=1, color=ft.Colors.OUTLINE_VARIANT),
                         ft.Container(height=18),
@@ -101,7 +183,7 @@ def main(page: ft.Page):
             )
 
         if game.get('is_forfeit'):
-            forfeit_label = "Техническая победа" if game['result'] == 1.0 else "Техническое поражение"
+            forfeit_label = tr("forfeit_win") if game['result'] == 1.0 else tr("forfeit_loss")
             fcolor = ft.Colors.GREEN_400 if game['result'] == 1.0 else ft.Colors.RED_400
             result_display = "1" if game['result'] == 1.0 else "0"
             return ft.Container(
@@ -113,7 +195,7 @@ def main(page: ft.Page):
                 height=360,
                 content=ft.Column(
                     [
-                        ft.Text(f"Тур {round_num}", size=14, color=ft.Colors.GREY_500),
+                        ft.Text(f"{tr('round')} {round_num}", size=14, color=ft.Colors.GREY_500),
                         ft.Container(height=18),
                         ft.Text(
                             game.get('opponent_name', ''),
@@ -122,7 +204,7 @@ def main(page: ft.Page):
                         ),
                         ft.Container(height=12),
                         ft.Text(
-                            f"Рейт: {game['opponent_rating']}  \u00b7  {forfeit_label}",
+                            f"{tr('rating_abbr')}: {game['opponent_rating']}  \u00b7  {forfeit_label}",
                             size=15, color=ft.Colors.GREY_400,
                             text_align=ft.TextAlign.CENTER,
                         ),
@@ -156,7 +238,7 @@ def main(page: ft.Page):
             height=360,
             content=ft.Column(
                 [
-                    ft.Text(f"Тур {round_num}", size=14, color=ft.Colors.GREY_500),
+                    ft.Text(f"{tr('round')} {round_num}", size=14, color=ft.Colors.GREY_500),
                     ft.Container(height=18),
                     ft.Text(
                         game.get('opponent_name', ''),
@@ -166,7 +248,7 @@ def main(page: ft.Page):
                     ),
                     ft.Container(height=12),
                     ft.Text(
-                        f"Рейт: {game['opponent_rating']}  \u00b7  Ожид: {exp_str}",
+                        f"{tr('rating_abbr')}: {game['opponent_rating']}  \u00b7  {tr('exp_abbr')}: {exp_str}",
                         size=15,
                         color=ft.Colors.GREY_400,
                         text_align=ft.TextAlign.CENTER,
@@ -217,10 +299,10 @@ def main(page: ft.Page):
             k = int(k_factor_dropdown.value)
 
             if old_rating is None:
-                error_text.value = "Ошибка: не удалось получить данные"
+                error_text.value = t("error_fetch")
                 error_text.visible = True
             elif len(games) == 0:
-                error_text.value = "Ошибка: Партии не найдены"
+                error_text.value = t("error_no_games")
                 error_text.visible = True
             else:
                 new_rating, actual_score, expected_score, game_expected = (
@@ -249,12 +331,12 @@ def main(page: ft.Page):
                 total_games = len(games)
                 bye_count = sum(1 for g in games if g.get('is_bye'))
                 normal_games = total_games - bye_count
-                games_str = f"{normal_games} игр"
+                games_str = f"{normal_games} {t('games')}"
                 if bye_count:
                     games_str += f" ({bye_count} bye)"
                 card_stats.value = (
                     f"{games_str} \u00b7 K={k} \u00b7 "
-                    f"Ожидал: {expected_score} \u00b7 Набрал: {actual_score}"
+                    f"{t('expected')}: {expected_score} \u00b7 {t('scored')}: {actual_score}"
                 )
                 current_card_index = 0
                 game_cards_list = [
@@ -269,7 +351,7 @@ def main(page: ft.Page):
                 games_section.visible = True
 
         except Exception as ex:
-            error_text.value = f"Системная ошибка: {ex}"
+            error_text.value = f"{t('error_system')}: {ex}"
             error_text.visible = True
         finally:
             progress_ring.visible = False
@@ -277,6 +359,14 @@ def main(page: ft.Page):
             page.update()
 
     # ------------------- UI Components -------------------
+
+    lang_toggle = ft.TextButton(
+        content=ft.Text("EN"),
+        on_click=toggle_lang,
+        tooltip="English",
+        top=4,
+        left=2,
+    )
 
     theme_toggle = ft.IconButton(
         icon=ft.Icons.LIGHT_MODE,
@@ -304,20 +394,21 @@ def main(page: ft.Page):
         height=48,
         value="40",
         options=[
-            ft.dropdown.Option(key=k, text=f"K={k}") for k in K_OPTIONS
+            ft.dropdown.Option(key=k, text=f"K={k}") for k in ("40", "20", "10")
         ],
         on_select=on_k_change,
     )
 
     k_description = ft.Text(
-        K_OPTIONS["40"],
+        "",
         size=12,
         italic=True,
         color=ft.Colors.GREY_400,
     )
 
+    calc_button_text = ft.Text("")
     calculate_button = ft.ElevatedButton(
-        content=ft.Text("Рассчитать"),
+        content=calc_button_text,
         width=200,
         height=50,
         on_click=calculate_clicked,
@@ -331,12 +422,12 @@ def main(page: ft.Page):
     # ------------------- Result Card -------------------
 
     card_old_rating = ft.Text("", size=44, weight=ft.FontWeight.BOLD)
-    card_old_label = ft.Text("Старый", size=12, color=ft.Colors.GREY_500)
+    card_old_label = ft.Text("", size=12, color=ft.Colors.GREY_500)
 
     card_trend_icon = ft.Icon(icon=ft.Icons.TRENDING_FLAT, size=38)
 
     card_new_rating = ft.Text("", size=44, weight=ft.FontWeight.BOLD)
-    card_new_label = ft.Text("Новый", size=12, color=ft.Colors.GREY_500)
+    card_new_label = ft.Text("", size=12, color=ft.Colors.GREY_500)
 
     card_change = ft.Text("", size=26)
 
@@ -425,20 +516,16 @@ def main(page: ft.Page):
 
     # ------------------- Page Layout -------------------
 
+    page_title_text = ft.Text("", size=28, weight=ft.FontWeight.BOLD)
+    page_subtitle_text = ft.Text("", size=16)
+
     page.add(
         ft.Stack(
             [
                 ft.Column(
                     [
-                        ft.Text(
-                            "Калькулятор рейтинга ФШР",
-                            size=28,
-                            weight=ft.FontWeight.BOLD,
-                        ),
-                        ft.Text(
-                            "Вставьте ссылку на страницу с результатами игрока",
-                            size=16,
-                        ),
+                        page_title_text,
+                        page_subtitle_text,
                         ft.Row(
                             [url_input, k_factor_dropdown],
                             spacing=10,
@@ -457,10 +544,13 @@ def main(page: ft.Page):
                     spacing=15,
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 ),
+                lang_toggle,
                 theme_toggle,
             ],
         ),
     )
+
+    update_lang()
 
 
 if __name__ == "__main__":
