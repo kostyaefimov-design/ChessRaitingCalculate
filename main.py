@@ -407,7 +407,7 @@ def main(page: ft.Page):
     )
 
     calc_button_text = ft.Text("")
-    calculate_button = ft.ElevatedButton(
+    calculate_button = ft.Button(
         content=calc_button_text,
         width=200,
         height=50,
