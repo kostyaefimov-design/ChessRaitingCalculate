@@ -1,6 +1,7 @@
 import flet as ft
 from backend import parse_player_page, calculate_new_rating
 
+# Localisation dictionary — every UI string in RU and EN.
 LANG = {
     "ru": {
         "page_title": "Калькулятор рейтинга ФИДЕ",
@@ -71,7 +72,7 @@ def main(page: ft.Page):
     page.padding = 30
     page.scroll = ft.ScrollMode.AUTO
 
-    # --- State ---
+    # --- App state ---
     current_lang = "ru"
     game_cards_list = []
     current_card_index = 0
@@ -140,6 +141,7 @@ def main(page: ft.Page):
         go_to_card(current_card_index + 1)
 
     def build_single_game_card(game, expected, round_num):
+        """Build a flash-card Container for a single game (normal, bye, or forfeit)."""
         lang = current_lang
         tr = lambda k: LANG[lang][k]
 
@@ -281,6 +283,7 @@ def main(page: ft.Page):
             go_to_card(current_card_index + 1)
 
     def calculate_clicked(e):
+        """Main handler — fetch page, parse, calculate rating, render results."""
         nonlocal game_cards_list, current_card_index, total_games
 
         url = url_input.value
